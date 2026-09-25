@@ -77,6 +77,7 @@ export const tasksApi = {
       .from('tasks')
       .update(row)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -84,8 +85,12 @@ export const tasksApi = {
     return fromTaskRow(data);
   },
 
-  async delete(id) {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
+  async delete(id, userId) {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
     if (error) throw error;
   },
 };

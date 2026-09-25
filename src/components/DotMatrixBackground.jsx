@@ -9,7 +9,7 @@ function DotMatrixBackground() {
     let animId;
 
     const TOTAL_SIZE = 22;
-    const DOT_RADIUS = 1.2;  // smaller = more subtle
+    const DOT_RADIUS = 1.2;
 
     const OPACITIES = [0.15, 0.15, 0.2, 0.25, 0.25, 0.3, 0.35, 0.35, 0.4, 0.5];
 
@@ -22,7 +22,7 @@ function DotMatrixBackground() {
       [99,  102, 241],
     ];
 
-    const ANIM_SPEED = 0.5; // how fast the sweep travels outward
+    const ANIM_SPEED = 0.5;
 
     let dots = [];
 
@@ -72,22 +72,18 @@ function DotMatrixBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Use performance.now() directly so time always moves forward
-    // regardless of when component mounts — this fixes the "not moving" bug
     const mountTime = performance.now();
 
     const draw = () => {
-      const t = (performance.now() - mountTime) / 1000; // seconds since mount
+      const t = (performance.now() - mountTime) / 1000;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (const dot of dots) {
-        // Smooth fade-in over 0.4s once the sweep front reaches this dot
         const elapsed  = t * ANIM_SPEED - dot.introOffset;
         const fadeIn   = Math.min(1, Math.max(0, elapsed / 0.4));
         if (fadeIn === 0) continue;
 
-        // Slow continuous flicker
         const flicker  = 0.55 + 0.45 * Math.sin(t * dot.flickerSpeed + dot.flickerPhase);
         const opacity  = fadeIn * dot.baseOpacity * flicker;
 

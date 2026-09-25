@@ -58,7 +58,7 @@ export function useTasks(userId) {
   };
 
   const deleteTask = async (id) => {
-    await tasksApi.delete(id);
+    await tasksApi.delete(id, userId);
     setTasks(prev => prev.filter(t => t.id !== id));
   };
 

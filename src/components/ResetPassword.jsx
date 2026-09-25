@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DotMatrixBackground from './DotMatrixBackground';
 import { authApi } from '../api/authApi';
@@ -83,6 +83,10 @@ export default function ResetPassword({ onReturnToLogin }) {
                 <h1>Create new password</h1>
                 <p>{checkingLink ? 'Checking your reset link...' : 'Choose a strong password for your TaskRay account.'}</p>
               </div>
+              <div className="reset-status-note">
+                <ShieldCheck size={16} />
+                <span>This page only works after opening the secure reset link from your email.</span>
+              </div>
               <form className="modern-form" onSubmit={handleSubmit}>
                 {error && <motion.div className="modern-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{error}</motion.div>}
                 <div className="modern-form-group">
@@ -99,7 +103,11 @@ export default function ResetPassword({ onReturnToLogin }) {
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)} title={showConfirm ? 'Hide password' : 'Show password'}>{showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                   </div>
                 </div>
-                <p className="password-requirements">10+ characters with an uppercase letter, number, and special character.</p>
+                <ul className="password-requirements reset-password-rules">
+                  <li>At least 10 characters</li>
+                  <li>One uppercase letter, one number, and one special character</li>
+                  <li>Both password fields must match</li>
+                </ul>
                 <button className="modern-submit-btn" type="submit" disabled={saving || checkingLink || !linkReady}>{checkingLink ? 'Checking link...' : saving ? 'Updating...' : 'Update password'}</button>
                 {!checkingLink && !linkReady && (
                   <button className="forgot-cancel-btn" type="button" onClick={onReturnToLogin}>Request another reset link</button>

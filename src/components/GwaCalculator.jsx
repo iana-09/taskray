@@ -56,9 +56,9 @@ const academicYearOptions = Array.from({ length: 11 }, (_, index) => {
   const startYear = currentAcademicStartYear - 5 + index;
   return `${startYear}-${startYear + 1}`;
 });
-const termOptions = ['1st Term', '2nd Term', '3rd Term'];
+const termOptions = ['1st Term', '2nd Term', '3rd Term', '4th Term'];
 const yearLevelOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-const termOrder = { '1st Term': 1, '2nd Term': 2, '3rd Term': 3 };
+const termOrder = { '1st Term': 1, '2nd Term': 2, '3rd Term': 3, '4th Term': 4 };
 const yearOrder = { '1st Year': 1, '2nd Year': 2, '3rd Year': 3, '4th Year': 4 };
 
 const normalizeKeyPart = (value) => String(value || '')
@@ -80,7 +80,9 @@ const makeYearKey = (info) => [
 
 const isHigherBetterScale = (gradeScaleMode) => gradeScaleMode !== 'lowerBetter';
 
-const getDefaultTpsTarget = (gradeScaleMode) => gradeScaleOptions[gradeScaleMode]?.target || topPerformingTarget;
+const getDefaultTpsTarget = (gradeScaleMode, academicPreferences = null) => (
+  Number(academicPreferences?.tpsTarget) || gradeScaleOptions[gradeScaleMode]?.target || topPerformingTarget
+);
 
 const qualifiesForScale = (gwa, target, gradeScaleMode) => {
   const current = Number(gwa || 0);
@@ -211,9 +213,17 @@ const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
-function GwaCalculator({ currentUser, Icons }) {
+function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPreferences = {} }) {
   const fileInputRef = useRef(null);
-  const [semesterInfo, setSemesterInfo] = useState(defaultSemesterInfo);
+  const [semesterInfo, setSemesterInfo] = useState(() => ({
+    ...defaultSemesterInfo(),
+    academicYear: academicPreferences.academicYear || defaultSemesterInfo().academicYear,
+    semester: academicPreferences.currentTerm || '1st Term',
+    program: currentUser.program || '',
+    yearLevel: academicPreferences.yearLevel === 'Custom'
+      ? academicPreferences.customYearLevel || 'Custom'
+      : academicPreferences.yearLevel || '1st Year',
+  }));
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadedImageData, setUploadedImageData] = useState('');
@@ -226,7 +236,7 @@ function GwaCalculator({ currentUser, Icons }) {
   const [ocrStatus, setOcrStatus] = useState('');
   const [ocrProgress, setOcrProgress] = useState(0);
   const [subjects, setSubjects] = useState([makeGradeRecord({ subjectName: '', status: 'manually-added' })]);
-  const [calculationMethod, setCalculationMethod] = useState('weighted');
+  const [calculationMethod, setCalculationMethod] = useState(gwaPreferences.weighted === false ? 'simple' : 'weighted');
   const [sameUnits, setSameUnits] = useState('');
   const [result, setResult] = useState(null);
   const [showTpsReveal, setShowTpsReveal] = useState(false);
@@ -235,7 +245,7 @@ function GwaCalculator({ currentUser, Icons }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [editingRecordId, setEditingRecordId] = useState(null);
-  const [targetGwa, setTargetGwa] = useState(topPerformingTarget.toFixed(2));
+  const [targetGwa, setTargetGwa] = useState((Number(academicPreferences.tpsTarget) || topPerformingTarget).toFixed(2));
   const [futureUnits, setFutureUnits] = useState('15');
   const [remainingSubjects, setRemainingSubjects] = useState('3');
   const [remainingSubjectUnits, setRemainingSubjectUnits] = useState('3');
@@ -250,6 +260,35 @@ function GwaCalculator({ currentUser, Icons }) {
     }
   });
   const selectedGradeScale = gradeScaleOptions[gradeScaleMode] || gradeScaleOptions.higherBetter;
+  const displayPrecision = Number(gwaPreferences.rounding) === 3 ? 3 : 2;
+  const predictionsEnabled = gwaPreferences.predictions !== false;
+  const activeTermOptions = useMemo(() => (
+    termOptions.slice(0, Math.max(1, Math.min(4, Number(academicPreferences.terms) || 3)))
+  ), [academicPreferences.terms]);
+
+  useEffect(() => {
+    setSemesterInfo(prev => ({
+      ...prev,
+      academicYear: academicPreferences.academicYear || prev.academicYear,
+      semester: academicPreferences.currentTerm || prev.semester,
+      yearLevel: academicPreferences.yearLevel === 'Custom'
+        ? academicPreferences.customYearLevel || prev.yearLevel
+        : academicPreferences.yearLevel || prev.yearLevel,
+    }));
+    if (Number(academicPreferences.tpsTarget)) {
+      setTargetGwa(Number(academicPreferences.tpsTarget).toFixed(2));
+    }
+  }, [
+    academicPreferences.academicYear,
+    academicPreferences.currentTerm,
+    academicPreferences.yearLevel,
+    academicPreferences.customYearLevel,
+    academicPreferences.tpsTarget,
+  ]);
+
+  useEffect(() => {
+    setCalculationMethod(gwaPreferences.weighted === false ? 'simple' : 'weighted');
+  }, [gwaPreferences.weighted]);
 
   useEffect(() => {
     try {
@@ -260,15 +299,15 @@ function GwaCalculator({ currentUser, Icons }) {
   }, [currentUser.id, gradeScaleMode]);
 
   useEffect(() => {
-    setTargetGwa(getDefaultTpsTarget(gradeScaleMode).toFixed(2));
+    setTargetGwa(getDefaultTpsTarget(gradeScaleMode, academicPreferences).toFixed(2));
     setResult(prev => prev ? {
       ...prev,
-      tps: getTpsDetails(prev.finalGWA, getDefaultTpsTarget(gradeScaleMode), gradeScaleMode),
+      tps: getTpsDetails(prev.finalGWA, getDefaultTpsTarget(gradeScaleMode, academicPreferences), gradeScaleMode),
       gradeScaleMode,
     } : prev);
     setShowTpsReveal(false);
     setShowScanGwaReveal(false);
-  }, [gradeScaleMode]);
+  }, [gradeScaleMode, academicPreferences]);
 
   useEffect(() => {
     let alive = true;
@@ -342,10 +381,10 @@ function GwaCalculator({ currentUser, Icons }) {
       group.records.forEach(record => {
         if (!uniqueTerms.has(record.semester)) uniqueTerms.set(record.semester, record);
       });
-      const records = termOptions.map(term => uniqueTerms.get(term)).filter(Boolean);
-      const isComplete = termOptions.every(term => uniqueTerms.has(term));
+      const records = activeTermOptions.map(term => uniqueTerms.get(term)).filter(Boolean);
+      const isComplete = activeTermOptions.every(term => uniqueTerms.has(term));
       const completeYearGwa = isComplete
-        ? termOptions.reduce((sum, term) => sum + Number(uniqueTerms.get(term).finalGWA || 0), 0) / termOptions.length
+        ? activeTermOptions.reduce((sum, term) => sum + Number(uniqueTerms.get(term).finalGWA || 0), 0) / activeTermOptions.length
         : null;
       const totalUnits = records.reduce((sum, record) => sum + Number(record.totalUnits || 0), 0);
       const totalWeightedPoints = records.reduce((sum, record) => sum + Number(record.totalWeightedPoints || 0), 0);
@@ -356,20 +395,20 @@ function GwaCalculator({ currentUser, Icons }) {
         isComplete,
         completeYearGwa,
         weightedYearGwa,
-        missingTerms: termOptions.filter(term => !uniqueTerms.has(term)),
+        missingTerms: activeTermOptions.filter(term => !uniqueTerms.has(term)),
       };
     });
-  }, [sortedHistory]);
+  }, [activeTermOptions, sortedHistory]);
   const activeYearSummary = yearSummaries.find(summary => summary.key === makeYearKey(semesterInfo));
   const yearPrediction = (() => {
     const records = activeYearSummary?.records || [];
     const completedTerms = records.length;
-    const remainingTerms = termOptions.length - completedTerms;
+    const remainingTerms = activeTermOptions.length - completedTerms;
     if (!completedTerms || remainingTerms <= 0) return null;
     const currentTotal = records.reduce((sum, record) => sum + Number(record.finalGWA || 0), 0);
-    const target = getDefaultTpsTarget(gradeScaleMode);
+    const target = getDefaultTpsTarget(gradeScaleMode, academicPreferences);
     const higherBetter = isHigherBetterScale(gradeScaleMode);
-    const requiredAverage = (target * termOptions.length - currentTotal) / remainingTerms;
+    const requiredAverage = (target * activeTermOptions.length - currentTotal) / remainingTerms;
     return {
       completedTerms,
       remainingTerms,
@@ -393,7 +432,7 @@ function GwaCalculator({ currentUser, Icons }) {
     const currentPoints = calculationMethod === 'weighted'
       ? Number(result.totalWeightedPoints || 0)
       : Number(result.finalGWA || 0) * currentUnits;
-    const target = getDefaultTpsTarget(gradeScaleMode);
+    const target = getDefaultTpsTarget(gradeScaleMode, academicPreferences);
     const higherBetter = isHigherBetterScale(gradeScaleMode);
     const requiredAverage = (target * (currentUnits + futureUnitsTotal) - currentPoints) / futureUnitsTotal;
     return {
@@ -447,7 +486,7 @@ function GwaCalculator({ currentUser, Icons }) {
   const goalPlan = useMemo(() => {
     if (!result) return null;
 
-    const target = Math.min(GRADE_MAX, Math.max(GRADE_MIN, normalizeNumber(targetGwa) || getDefaultTpsTarget(gradeScaleMode)));
+    const target = Math.min(GRADE_MAX, Math.max(GRADE_MIN, normalizeNumber(targetGwa) || getDefaultTpsTarget(gradeScaleMode, academicPreferences)));
     const plannedUnits = Math.max(0, normalizeNumber(futureUnits) || 0);
     const currentGwa = Number(result.finalGWA || 0);
     const currentUnits = Number(result.totalUnits || 0);
@@ -511,7 +550,7 @@ function GwaCalculator({ currentUser, Icons }) {
       status,
       summary,
     };
-  }, [futureUnits, gradeScaleMode, result, targetGwa]);
+  }, [academicPreferences, futureUnits, gradeScaleMode, result, targetGwa]);
 
   const filteredUploadHistory = useMemo(() => {
     const query = uploadHistoryQuery.trim().toLowerCase();
@@ -673,7 +712,7 @@ function GwaCalculator({ currentUser, Icons }) {
       uploadedImageUri: uploadedImageData,
       gradeScaleMode,
       gradeScaleLabel: selectedGradeScale.label,
-      tps: getTpsDetails(calculated.finalGWA, getDefaultTpsTarget(gradeScaleMode), gradeScaleMode),
+      tps: getTpsDetails(calculated.finalGWA, getDefaultTpsTarget(gradeScaleMode, academicPreferences), gradeScaleMode),
       dateCalculated: new Date().toISOString(),
     };
     setResult(nextResult);
@@ -790,7 +829,7 @@ function GwaCalculator({ currentUser, Icons }) {
     uploadedImageUri: uploadedImageData,
     gradeScaleMode,
     gradeScaleLabel: selectedGradeScale.label,
-    tps: getTpsDetails(result.finalGWA, getDefaultTpsTarget(gradeScaleMode), gradeScaleMode),
+    tps: getTpsDetails(result.finalGWA, getDefaultTpsTarget(gradeScaleMode, academicPreferences), gradeScaleMode),
     subjects: result.records.map(subject => ({
       ...subject,
       grade: normalizeNumber(subject.grade),
@@ -912,7 +951,7 @@ function GwaCalculator({ currentUser, Icons }) {
         gradeScaleLabel: gradeScaleOptions[record.gradeScaleMode || gradeScaleMode]?.label || selectedGradeScale.label,
         tps: getTpsDetails(
           calculated.finalGWA,
-          getDefaultTpsTarget(record.gradeScaleMode || gradeScaleMode),
+          getDefaultTpsTarget(record.gradeScaleMode || gradeScaleMode, academicPreferences),
           record.gradeScaleMode || gradeScaleMode
         ),
         dateCalculated: new Date().toISOString(),
@@ -1011,7 +1050,7 @@ function GwaCalculator({ currentUser, Icons }) {
               Term
               <select className="dash-select" value={semesterInfo.semester} onChange={event => setSemesterField('semester', event.target.value)}>
                 <option value="">Select term</option>
-                {termOptions.map(term => <option key={term}>{term}</option>)}
+                {activeTermOptions.map(term => <option key={term}>{term}</option>)}
               </select>
             </label>
             <label>
@@ -1301,7 +1340,7 @@ function GwaCalculator({ currentUser, Icons }) {
             </div>
             <div className="gwa-score-badge">
               <span>{showTpsReveal ? 'Final GWA' : 'Hidden result'}</span>
-              <strong>{showTpsReveal ? result.displayGWA : 'Ready'}</strong>
+              <strong>{showTpsReveal ? Number(result.finalGWA).toFixed(displayPrecision) : 'Ready'}</strong>
             </div>
           </div>
           {showTpsReveal ? (
@@ -1309,8 +1348,8 @@ function GwaCalculator({ currentUser, Icons }) {
               <span>Formula</span>
               <strong>
                 {result.method === 'weighted'
-                  ? `${result.totalWeightedPoints.toFixed(2)} weighted points / ${result.totalUnits.toFixed(2)} units = ${result.displayGWA}`
-                  : `${result.totalWeightedPoints.toFixed(2)} grade points / ${result.subjectCount} subjects = ${result.displayGWA}`}
+                  ? `${result.totalWeightedPoints.toFixed(displayPrecision)} weighted points / ${result.totalUnits.toFixed(displayPrecision)} units = ${Number(result.finalGWA).toFixed(displayPrecision)}`
+                  : `${result.totalWeightedPoints.toFixed(displayPrecision)} grade points / ${result.subjectCount} subjects = ${Number(result.finalGWA).toFixed(displayPrecision)}`}
               </strong>
             </div>
           ) : (
@@ -1318,7 +1357,7 @@ function GwaCalculator({ currentUser, Icons }) {
               <div>
                 <span className="metric-label">Suspense check</span>
                 <h3>Click to reveal your GWA</h3>
-                <p>TaskRay will show your exact GWA and whether it reaches the {getDefaultTpsTarget(gradeScaleMode).toFixed(2)} TPS requirement for the {selectedGradeScale.shortLabel} scale.</p>
+                <p>TaskRay will show your exact GWA and whether it reaches the {getDefaultTpsTarget(gradeScaleMode, academicPreferences).toFixed(2)} TPS requirement for the {selectedGradeScale.shortLabel} scale.</p>
               </div>
               <button className="dash-submit-btn" type="button" onClick={() => setShowTpsReveal(true)}>
                 Reveal GWA and TPS status
@@ -1330,8 +1369,8 @@ function GwaCalculator({ currentUser, Icons }) {
             <span>Term <strong>{result.semester || 'Not set'}</strong></span>
             <span>Year level <strong>{result.yearLevel || 'Not set'}</strong></span>
             <span>Subjects <strong>{result.subjectCount}</strong></span>
-            <span>Total units <strong>{result.totalUnits.toFixed(2)}</strong></span>
-            <span>Weighted points <strong>{result.totalWeightedPoints.toFixed(2)}</strong></span>
+            <span>Total units <strong>{result.totalUnits.toFixed(displayPrecision)}</strong></span>
+            <span>Weighted points <strong>{result.totalWeightedPoints.toFixed(displayPrecision)}</strong></span>
             <span>Date calculated <strong>{new Date(result.dateCalculated).toLocaleDateString()}</strong></span>
           </div>
           {result.tps && showTpsReveal && (
@@ -1342,13 +1381,13 @@ function GwaCalculator({ currentUser, Icons }) {
                 <p>{result.tps.helper}</p>
               </div>
               <div className="gwa-tps-stats">
-                <span>Current GWA <strong>{result.tps.current.toFixed(2)}</strong></span>
-                <span>Required GWA <strong>{result.tps.required.toFixed(2)}</strong></span>
-                <span>Difference <strong>{result.tps.difference >= 0 ? '+' : ''}{result.tps.difference.toFixed(2)}</strong></span>
+                <span>Current GWA <strong>{result.tps.current.toFixed(displayPrecision)}</strong></span>
+                <span>Required GWA <strong>{result.tps.required.toFixed(displayPrecision)}</strong></span>
+                <span>Difference <strong>{result.tps.difference >= 0 ? '+' : ''}{result.tps.difference.toFixed(displayPrecision)}</strong></span>
               </div>
             </div>
           )}
-          {goalPlan && (
+          {predictionsEnabled && goalPlan && (
             <div className="gwa-goal-card">
               <div className="gwa-goal-head">
                 <div>
@@ -1387,21 +1426,21 @@ function GwaCalculator({ currentUser, Icons }) {
                 <span style={{ width: `${goalPlan.progress}%` }} />
               </div>
               <div className="gwa-goal-grid">
-                <span>Current GWA <strong>{goalPlan.currentGwa.toFixed(2)}</strong></span>
-                <span>Target standard <strong>{goalPlan.higherBetter ? `${goalPlan.target.toFixed(2)}+` : `${goalPlan.target.toFixed(2)} or lower`}</strong></span>
+                <span>Current GWA <strong>{goalPlan.currentGwa.toFixed(displayPrecision)}</strong></span>
+                <span>Target standard <strong>{goalPlan.higherBetter ? `${goalPlan.target.toFixed(displayPrecision)}+` : `${goalPlan.target.toFixed(displayPrecision)} or lower`}</strong></span>
                 <span>
                   Gap
-                  <strong>{goalPlan.qualified ? `${Math.abs(goalPlan.gap).toFixed(2)} safe` : `${goalPlan.gap.toFixed(2)} short`}</strong>
+                  <strong>{goalPlan.qualified ? `${Math.abs(goalPlan.gap).toFixed(displayPrecision)} safe` : `${goalPlan.gap.toFixed(displayPrecision)} short`}</strong>
                 </span>
                 <span>
                   Needed future average
-                  <strong>{goalPlan.requiredAverage === null ? 'Add units' : goalPlan.higherBetter && goalPlan.requiredAverage <= GRADE_MIN ? `${GRADE_MIN.toFixed(2)}+` : !goalPlan.higherBetter && goalPlan.requiredAverage >= GRADE_MAX ? `${GRADE_MAX.toFixed(2)} or lower` : goalPlan.requiredAverage.toFixed(2)}</strong>
+                  <strong>{goalPlan.requiredAverage === null ? 'Add units' : goalPlan.higherBetter && goalPlan.requiredAverage <= GRADE_MIN ? `${GRADE_MIN.toFixed(displayPrecision)}+` : !goalPlan.higherBetter && goalPlan.requiredAverage >= GRADE_MAX ? `${GRADE_MAX.toFixed(displayPrecision)} or lower` : goalPlan.requiredAverage.toFixed(displayPrecision)}</strong>
                 </span>
               </div>
               <p className={`gwa-goal-status ${goalPlan.status}`}>{goalPlan.summary}</p>
             </div>
           )}
-          <div className="gwa-goal-card">
+          {predictionsEnabled && <div className="gwa-goal-card">
             <div className="gwa-goal-head">
               <div>
                 <span className="metric-label">TPS grade predictor</span>
@@ -1449,7 +1488,7 @@ function GwaCalculator({ currentUser, Icons }) {
                       : `For ${semesterInfo.academicYear} - ${semesterInfo.yearLevel}, aim for about ${yearPrediction.requiredAverage.toFixed(2)} or lower average GWA across ${yearPrediction.missingTerms.join(' and ')}.`}
               </p>
             )}
-          </div>
+          </div>}
           <div className="gwa-breakdown-card">
             <div className="dashboard-card-head compact">
               <div>
@@ -1507,14 +1546,14 @@ function GwaCalculator({ currentUser, Icons }) {
           <div className="gwa-history-list">
             {yearSummaries.map(summary => {
               const summaryScaleMode = summary.records.find(record => record.gradeScaleMode)?.gradeScaleMode || gradeScaleMode;
-              const summaryTps = summary.isComplete ? getTpsDetails(summary.completeYearGwa, getDefaultTpsTarget(summaryScaleMode), summaryScaleMode) : null;
+              const summaryTps = summary.isComplete ? getTpsDetails(summary.completeYearGwa, getDefaultTpsTarget(summaryScaleMode, academicPreferences), summaryScaleMode) : null;
               return (
                 <div className="gwa-year-group" key={summary.key}>
                   <div className="gwa-year-group-head">
                     <div>
                       <span className="metric-label">Academic record group</span>
                       <h3>{summary.academicYear} - {summary.yearLevel}</h3>
-                      <p>{summary.records.length}/3 terms uploaded{summary.missingTerms.length ? ` - missing ${summary.missingTerms.join(', ')}` : ''}</p>
+                      <p>{summary.records.length}/{Number(academicPreferences.terms) || 3} terms uploaded{summary.missingTerms.length ? ` - missing ${summary.missingTerms.join(', ')}` : ''}</p>
                     </div>
                     {summary.isComplete && (
                       <div className="gwa-year-complete">
@@ -1527,7 +1566,7 @@ function GwaCalculator({ currentUser, Icons }) {
                   {summary.isComplete && (
                     <div className="gwa-complete-year-card">
                       <div className="gwa-result-grid">
-                        {termOptions.map(term => {
+                        {activeTermOptions.map(term => {
                           const record = summary.records.find(item => item.semester === term);
                           return <span key={term}>{term} GWA <strong>{Number(record?.finalGWA || 0).toFixed(2)}</strong></span>;
                         })}
@@ -1539,7 +1578,7 @@ function GwaCalculator({ currentUser, Icons }) {
                   )}
                   {summary.records.map(record => {
                     const recordScaleMode = record.gradeScaleMode || gradeScaleMode;
-                    const tps = getTpsDetails(record.finalGWA, getDefaultTpsTarget(recordScaleMode), recordScaleMode);
+                    const tps = getTpsDetails(record.finalGWA, getDefaultTpsTarget(recordScaleMode, academicPreferences), recordScaleMode);
                     return (
                       <article className="gwa-history-card" key={record.id}>
                         <div>
@@ -1585,7 +1624,7 @@ function GwaCalculator({ currentUser, Icons }) {
                 </div>
                 <div className="gwa-tps-stats">
                   <span>Current <strong>{scanPreview.finalGWA.toFixed(2)}</strong></span>
-                  <span>Required <strong>{getDefaultTpsTarget(gradeScaleMode).toFixed(2)}</strong></span>
+                  <span>Required <strong>{getDefaultTpsTarget(gradeScaleMode, academicPreferences).toFixed(2)}</strong></span>
                 </div>
               </div>
             ) : (
@@ -1658,7 +1697,7 @@ function GwaCalculator({ currentUser, Icons }) {
             </div>
             {(() => {
               const selectedScaleMode = selectedRecord.gradeScaleMode || gradeScaleMode;
-              const tps = getTpsDetails(selectedRecord.finalGWA, getDefaultTpsTarget(selectedScaleMode), selectedScaleMode);
+              const tps = getTpsDetails(selectedRecord.finalGWA, getDefaultTpsTarget(selectedScaleMode, academicPreferences), selectedScaleMode);
               return (
                 <div className={`gwa-tps-card ${tps.qualified ? 'qualified' : 'not-qualified'}`}>
                   <div>
@@ -1669,7 +1708,7 @@ function GwaCalculator({ currentUser, Icons }) {
                   <div className="gwa-tps-stats">
                     <span>Subjects <strong>{selectedRecord.subjects?.length || 0}</strong></span>
                     <span>Units <strong>{Number(selectedRecord.totalUnits || 0).toFixed(2)}</strong></span>
-                    <span>Required <strong>{getDefaultTpsTarget(selectedScaleMode).toFixed(2)}</strong></span>
+                    <span>Required <strong>{getDefaultTpsTarget(selectedScaleMode, academicPreferences).toFixed(2)}</strong></span>
                   </div>
                 </div>
               );
