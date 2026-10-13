@@ -252,6 +252,7 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
   const [uploadHistory, setUploadHistory] = useState(() => readUploadHistory(currentUser.id));
   const [uploadHistoryQuery, setUploadHistoryQuery] = useState('');
   const [selectedUploadId, setSelectedUploadId] = useState('');
+  const [activeGwaTab, setActiveGwaTab] = useState('enter');
   const [gradeScaleMode, setGradeScaleMode] = useState(() => {
     try {
       return localStorage.getItem(`taskray:gwa-grade-scale:${currentUser.id}`) || 'higherBetter';
@@ -1035,6 +1036,19 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
         </div>
       )}
 
+      <nav className="gwa-tabs" role="tablist" aria-label="GWA calculator sections">
+        {[
+          ['enter', 'Enter grades', subjects.length],
+          ['scan', 'Scan grades', uploadHistory.length],
+          ['results', 'Results', result ? 'Ready' : null],
+          ['history', 'Saved records', history.length],
+        ].map(([id, label, count]) => (
+          <button key={id} id={`gwa-tab-${id}`} type="button" role="tab" aria-selected={activeGwaTab === id} aria-controls={`gwa-section-${id}`} className="gwa-tab" onClick={() => setActiveGwaTab(id)}>
+            {label}{count !== null && count !== undefined ? <span>{count}</span> : null}
+          </button>
+        ))}
+      </nav>
+
       <div className="gwa-grid">
         <section className="tool-card gwa-panel">
           <span className="metric-label">Semester information</span>
@@ -1070,6 +1084,8 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
         </section>
 
         <section
+          id="gwa-section-scan"
+          hidden={activeGwaTab !== 'scan'}
           className="tool-card gwa-upload-card"
           onDragOver={event => event.preventDefault()}
           onDrop={event => {
@@ -1143,7 +1159,7 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
         </section>
       </div>
 
-      <section className="tool-card gwa-upload-history-card">
+      <section className="tool-card gwa-upload-history-card" hidden={activeGwaTab !== 'scan'}>
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">Upload history</span>
@@ -1240,7 +1256,7 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
         )}
       </section>
 
-      <section className="tool-card gwa-panel">
+      <section id="gwa-section-enter" className="tool-card gwa-panel gwa-subject-entry" hidden={activeGwaTab !== 'enter'}>
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">Editable subject table</span>
@@ -1325,8 +1341,8 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
         </div>
       </section>
 
-      {result && (
-        <section className="tool-card gwa-result-card">
+      {activeGwaTab === 'results' && (result ? (
+        <section id="gwa-section-results" className="tool-card gwa-result-card">
           <div className="gwa-result-header">
             <div>
               <span className="metric-label">Result</span>
@@ -1528,9 +1544,9 @@ function GwaCalculator({ currentUser, Icons, academicPreferences = {}, gwaPrefer
             <button className="dash-cancel-btn" type="button" onClick={copySummary}>Copy Summary</button>
           </div>
         </section>
-      )}
+      ) : <div id="gwa-section-results" className="dash-empty"><p>Calculate your GWA to see your result and grade breakdown here.</p></div>)}
 
-      <section className="tool-card gwa-panel">
+      <section id="gwa-section-history" className="tool-card gwa-panel" hidden={activeGwaTab !== 'history'}>
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">GWA history</span>

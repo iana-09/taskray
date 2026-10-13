@@ -1590,6 +1590,7 @@ export default function App() {
     }
   });
   const [calendarMonth, setCalendarMonth] = useState(() => monthValue(new Date()));
+  const [activeCalendarTab, setActiveCalendarTab] = useState('month');
   const [newEvent, setNewEvent] = useState({ title: '', date: '', time: '', notes: '' });
   const [showCalendarForm, setShowCalendarForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
@@ -5461,7 +5462,18 @@ export default function App() {
             data-tutorial-target="calendar"
             className={`calendar-layout${isTutorialTarget('calendar') ? ' tutorial-highlight' : ''}`}
           >
-            <div className="calendar-overview">
+            <nav className="calendar-section-tabs" role="tablist" aria-label="Calendar sections">
+              {[
+                ['month', 'Month view', calendarEvents.length],
+                ['agenda', 'Agenda', sortedEvents.length],
+                ['upcoming', 'Upcoming', upcomingEvents.length],
+              ].map(([id, label, count]) => (
+                <button key={id} id={`calendar-tab-${id}`} type="button" role="tab" aria-selected={activeCalendarTab === id} aria-controls={`calendar-section-${id}`} className="calendar-section-tab" onClick={() => setActiveCalendarTab(id)}>
+                  {label}<span>{count}</span>
+                </button>
+              ))}
+            </nav>
+            <div id="calendar-section-month" role="tabpanel" aria-labelledby="calendar-tab-month" hidden={activeCalendarTab !== 'month'} className="calendar-overview">
               <div className="calendar-overview-head">
                 <div>
                   <span className="metric-label">Calendar overview</span>
@@ -5584,7 +5596,7 @@ export default function App() {
                 </aside>
               </div>
             )}
-            <div className="calendar-preview">
+            <div id="calendar-section-agenda" role="tabpanel" aria-labelledby="calendar-tab-agenda" hidden={activeCalendarTab !== 'agenda'} className="calendar-preview">
               <div className="calendar-preview-head">
                 <div>
                   <span className="metric-label">Agenda list</span>
@@ -5612,7 +5624,7 @@ export default function App() {
                 </section>
               ))}
             </div>
-            <div className="calendar-list">
+            <div id="calendar-section-upcoming" role="tabpanel" aria-labelledby="calendar-tab-upcoming" hidden={activeCalendarTab !== 'upcoming'} className="calendar-list">
               <div className="calendar-list-title">
                 <span className="metric-label">Quick preview</span>
                 <h2>Upcoming</h2>
