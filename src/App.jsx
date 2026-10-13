@@ -1591,6 +1591,7 @@ export default function App() {
   });
   const [calendarMonth, setCalendarMonth] = useState(() => monthValue(new Date()));
   const [newEvent, setNewEvent] = useState({ title: '', date: '', time: '', notes: '' });
+  const [showCalendarForm, setShowCalendarForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [studyPlanSessions, setStudyPlanSessions] = useState([]);
   const [studyPlanGeneratedAt, setStudyPlanGeneratedAt] = useState('');
@@ -2419,6 +2420,12 @@ export default function App() {
     window.addEventListener('pointerup', stop);
   };
 
+  const openTodayAgendaForm = () => {
+    setNewEvent({ title: '', date: dateValue(new Date()), time: '', notes: '' });
+    setSelectedEventId(null);
+    setShowCalendarForm(true);
+  };
+
   const handleAddEvent = (e) => {
     e.preventDefault();
     if (!newEvent.title.trim() || !newEvent.date) return;
@@ -2435,6 +2442,7 @@ export default function App() {
     ]);
     setSelectedEventId(event.id);
     setNewEvent({ title: '', date: '', time: '', notes: '' });
+    setShowCalendarForm(false);
   };
 
   const handleDeleteEvent = (id) => {
@@ -3408,7 +3416,7 @@ export default function App() {
         break;
       case 'todayAgenda':
         setActiveView('calendar');
-        setNewEvent({ ...newEvent, date: new Date().toISOString().slice(0, 10) });
+        openTodayAgendaForm();
         break;
       case 'reviewer':
         setActiveView('review');
@@ -4027,7 +4035,7 @@ export default function App() {
           {activeView === 'calendar' && (
             <>
               <button type="button" onClick={() => setCalendarMonth(monthValue(new Date()))}>Today</button>
-              <button type="button" onClick={() => setNewEvent({ ...newEvent, date: new Date().toISOString().slice(0, 10) })}><Icons.Plus /> Today agenda</button>
+              <button type="button" onClick={openTodayAgendaForm}><Icons.Plus /> Today agenda</button>
               {selectedCalendarEvent && <button type="button" onClick={() => setSelectedEventId(null)}>Close details</button>}
             </>
           )}
@@ -5503,16 +5511,52 @@ export default function App() {
                 ))}
               </div>
             </div>
-            <form className="tool-card calendar-form" onSubmit={handleAddEvent}>
-              <h2 className="tool-title">Schedule an agenda</h2>
-              <input className="dash-input" placeholder="Event or agenda title" value={newEvent.title} onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} />
-              <div className="dash-form-row">
-                <input className="dash-input" type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
-                <input className="dash-input" type="time" value={newEvent.time} onChange={e => setNewEvent({ ...newEvent, time: e.target.value })} />
+            {showCalendarForm && (
+              <div
+                className="calendar-detail-overlay calendar-form-overlay"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="calendar-form-title"
+                onClick={() => setShowCalendarForm(false)}
+                onKeyDown={event => {
+                  if (event.key === 'Escape') setShowCalendarForm(false);
+                }}
+              >
+                <form className="calendar-detail-card calendar-form-modal" onSubmit={handleAddEvent} onClick={event => event.stopPropagation()}>
+                  <div className="calendar-detail-head">
+                    <div>
+                      <span className="metric-label">Plan your day</span>
+                      <h2 id="calendar-form-title">Schedule an agenda</h2>
+                    </div>
+                    <button className="calendar-detail-close" type="button" onClick={() => setShowCalendarForm(false)} aria-label="Close schedule form">
+                      <Icons.X />
+                    </button>
+                  </div>
+                  <label className="calendar-form-field">
+                    <span>Agenda title</span>
+                    <input className="dash-input" autoFocus required placeholder="What do you need to do?" value={newEvent.title} onChange={event => setNewEvent({ ...newEvent, title: event.target.value })} />
+                  </label>
+                  <div className="calendar-form-date-row">
+                    <label className="calendar-form-field">
+                      <span>Date</span>
+                      <input className="dash-input" type="date" required value={newEvent.date} onChange={event => setNewEvent({ ...newEvent, date: event.target.value })} />
+                    </label>
+                    <label className="calendar-form-field">
+                      <span>Time <small>optional</small></span>
+                      <input className="dash-input" type="time" value={newEvent.time} onChange={event => setNewEvent({ ...newEvent, time: event.target.value })} />
+                    </label>
+                  </div>
+                  <label className="calendar-form-field">
+                    <span>Notes <small>optional</small></span>
+                    <textarea className="dash-textarea" rows="3" placeholder="Add helpful details" value={newEvent.notes} onChange={event => setNewEvent({ ...newEvent, notes: event.target.value })} />
+                  </label>
+                  <div className="calendar-form-actions">
+                    <button className="dash-cancel-btn" type="button" onClick={() => setShowCalendarForm(false)}>Cancel</button>
+                    <button className="dash-submit-btn" type="submit"><Icons.Plus /> Add to calendar</button>
+                  </div>
+                </form>
               </div>
-              <textarea className="dash-textarea" rows="3" placeholder="Notes" value={newEvent.notes} onChange={e => setNewEvent({ ...newEvent, notes: e.target.value })} />
-              <button className="dash-submit-btn" type="submit"><Icons.Plus /> Add agenda</button>
-            </form>
+            )}
             {selectedCalendarEvent && (
               <div className="calendar-detail-overlay" role="dialog" aria-modal="true" aria-label="Selected calendar event details" onClick={() => setSelectedEventId(null)}>
                 <aside className="calendar-detail-card" onClick={event => event.stopPropagation()}>

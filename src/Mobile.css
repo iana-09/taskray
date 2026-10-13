@@ -1,4 +1,44 @@
 /* Phone-first refinements layered after the legacy responsive rules. */
+.calendar-form-modal {
+  display: grid;
+  gap: 16px;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.calendar-form-field {
+  display: grid;
+  gap: 7px;
+  color: rgba(219, 234, 254, 0.82);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.calendar-form-field small {
+  color: rgba(203, 213, 225, 0.5);
+  font-weight: 600;
+}
+
+.calendar-form-field .dash-input,
+.calendar-form-field .dash-textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.calendar-form-date-row,
+.calendar-form-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calendar-form-actions {
+  margin-top: 2px;
+}
+
+.calendar-form-actions > button {
+  min-height: 46px;
+}
+
 @media (max-width: 760px) {
   .dash-root,
   .dash-main,
@@ -253,6 +293,17 @@
 
   .calendar-preview {
     max-height: none !important;
+  }
+
+  .calendar-detail-overlay.calendar-form-overlay {
+    display: grid !important;
+    place-items: center !important;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .calendar-form-modal {
+    gap: 13px !important;
+    padding: 18px !important;
   }
 
   .essay-writing-area {
