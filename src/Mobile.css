@@ -379,3 +379,72 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Focused Essay Practice sections */
+.essay-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 5px;
+  border: 1px solid var(--theme-panel-border);
+  border-radius: 14px;
+  background: var(--theme-panel);
+  scrollbar-width: thin;
+}
+
+.essay-tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--theme-chip-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.essay-tab:hover,
+.essay-tab[aria-selected="true"] {
+  border-color: var(--theme-panel-border);
+  background: rgba(99, 102, 241, 0.18);
+  color: #f8fafc;
+}
+
+.essay-tab-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.essay-current-topic {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--theme-panel-border);
+  border-radius: 14px;
+  background: var(--theme-panel);
+}
+
+.essay-current-topic > div { display: grid; gap: 5px; min-width: 0; }
+.essay-current-topic strong { color: #f8fafc; overflow-wrap: anywhere; }
+.essay-generator-note { margin: 0 0 12px; color: var(--theme-chip-text); line-height: 1.5; }
+.essay-tab-panel > .essay-panel { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .essay-tabs { gap: 5px; padding: 4px; scroll-snap-type: x proximity; }
+  .essay-tab { min-height: 42px; padding: 0 12px; font-size: 0.86rem; scroll-snap-align: start; }
+  .essay-current-topic { align-items: stretch; flex-direction: column; }
+  .essay-current-topic .dashboard-link-btn { width: 100%; justify-content: center; }
+}

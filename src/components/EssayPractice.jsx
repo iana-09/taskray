@@ -239,6 +239,7 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
   const [redoStack, setRedoStack] = useState([]);
   const [writingMood, setWritingMood] = useState('Natural');
   const [editorFontSize, setEditorFontSize] = useState(18);
+  const [activeTab, setActiveTab] = useState('write');
   const editorRef = useRef(null);
 
   const words = countWords(draft.content);
@@ -324,9 +325,27 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
     setHistoryStack([]);
     setRedoStack([]);
     setStatus('New prompt ready');
+    setActiveTab('write');
   };
 
-  const generatePrompt = () => applyPrompt(makePrompt(promptOptions));
+  const generatePrompt = () => setActivePrompt(makePrompt(promptOptions));
+
+  const useActivePrompt = async () => {
+    if (draft.content.trim() || draft.id) {
+      setSaving(true);
+      try {
+        const saved = await essayApi.save(currentUser.id, { ...draft, wordCount: words, writingMood, editorFontSize });
+        setEssays(prev => [saved, ...prev.filter(item => item.id !== saved.id)]);
+      } catch {
+        setStatus('Could not save your current essay. Please save it before starting a new topic.');
+        setActiveTab('write');
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    }
+    applyPrompt(activePrompt);
+  };
 
   const updateContent = (value) => {
     setHistoryStack(prev => [...prev.slice(-24), draft.content]);
@@ -394,8 +413,10 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
       const saved = await essayApi.save(currentUser.id, nextDraft);
       setEssays(prev => [saved, ...prev.filter(item => item.id !== saved.id)]);
       setStatus('Feedback ready');
+      setActiveTab('feedback');
     } catch {
       setStatus('Feedback created, but saving failed.');
+      setActiveTab('feedback');
     } finally {
       setSaving(false);
     }
@@ -417,6 +438,7 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
     });
     setHistoryStack([]);
     setRedoStack([]);
+    setActiveTab('write');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -472,21 +494,33 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
           <h2>Practice writing, then improve with guided feedback.</h2>
           <p>Generate a topic, write your own essay, and get constructive suggestions. TaskRay does not write the essay for you.</p>
         </div>
-        <button className="dash-submit-btn" type="button" onClick={generatePrompt}><Sparkles size={16} /> Start Practice</button>
+        <button className="dash-submit-btn" type="button" onClick={() => setActiveTab('write')}><Edit3 size={16} /> Continue Writing</button>
       </article>
 
-      <div className="essay-dashboard-grid">
-        <div className="essay-stat-card"><span>Total essays</span><strong>{stats.total}</strong><p>{saving ? 'Saving...' : status || 'Ready to write'}</p></div>
-        <div className="essay-stat-card"><span>Average score</span><strong>{stats.averageScore || '-'}</strong><p>Based on submitted essays</p></div>
-        <div className="essay-stat-card"><span>Favorite category</span><strong>{stats.favoriteCategory}</strong><p>Most practiced topic area</p></div>
-        <div className="essay-stat-card"><span>Average words</span><strong>{stats.averageWords}</strong><p>Writing length trend</p></div>
-      </div>
+      <nav className="essay-tabs" role="tablist" aria-label="Essay practice sections">
+        {[
+          ['write', 'Write', Edit3],
+          ['topics', 'Topic Generator', Sparkles],
+          ['feedback', 'Feedback', Lightbulb],
+          ['history', 'Essay History', BookOpen],
+          ['progress', 'Progress', BarChart3],
+        ].map(([id, label, Icon]) => (
+          <button key={id} id={`essay-tab-${id}`} className="essay-tab" type="button" role="tab" aria-selected={activeTab === id} aria-controls={`essay-panel-${id}`} onClick={() => setActiveTab(id)}>
+            <Icon size={16} /> {label}{id === 'history' && essays.length > 0 ? ` (${essays.length})` : ''}
+          </button>
+        ))}
+      </nav>
 
-      <article className="essay-panel essay-generator-card">
+      <div className="essay-tab-panel" id={`essay-panel-${activeTab}`} role="tabpanel" aria-labelledby={`essay-tab-${activeTab}`}>
+      {activeTab === 'write' && <>
+      {draft.topic && <div className="essay-current-topic"><div><span className="metric-label">Current topic</span><strong>{draft.topic}</strong></div><button className="dashboard-link-btn" type="button" onClick={() => setActiveTab('topics')}><Sparkles size={15} /> Choose another topic</button></div>}
+      {!draft.topic && <div className="essay-empty-state"><FileText size={26} /><p>Start by choosing a topic, or continue with a blank essay.</p><button className="dashboard-link-btn" type="button" onClick={() => setActiveTab('topics')}><Sparkles size={15} /> Browse topics</button></div>}
+      </>}
+      {activeTab === 'topics' && <article className="essay-panel essay-generator-card">
         <div className="dashboard-card-head">
           <div>
-            <span className="metric-label">AI Topic Generator</span>
-            <h2>Prompt setup</h2>
+            <span className="metric-label">Topic Generator</span>
+            <h2>Find your next writing prompt</h2>
           </div>
           <button className="dashboard-link-btn" type="button" onClick={generatePrompt}><RefreshCw size={15} /> Random Topic</button>
         </div>
@@ -495,6 +529,7 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
           <label>Essay type<select className="dash-select" value={promptOptions.essayType} onChange={event => setPromptOptions(prev => ({ ...prev, essayType: event.target.value }))}>{essayTypes.map(item => <option key={item}>{item}</option>)}</select></label>
           <label>Category<select className="dash-select" value={promptOptions.category} onChange={event => setPromptOptions(prev => ({ ...prev, category: event.target.value }))}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
         </div>
+        <p className="essay-generator-note">Choose a type, difficulty, and category. TaskRay picks a practice prompt from its built-in topic library.</p>
         <div className="essay-prompt-card">
           <span>{activePrompt.difficulty} | {activePrompt.essayType}</span>
           <h3>{activePrompt.topic}</h3>
@@ -505,9 +540,10 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
             <small>{activePrompt.category}</small>
           </div>
         </div>
-      </article>
+        <div className="essay-actions"><button className="dash-submit-btn" type="button" onClick={useActivePrompt}><Edit3 size={16} /> Use this topic</button><button className="dashboard-link-btn" type="button" onClick={generatePrompt}><RefreshCw size={15} /> Generate another</button></div>
+      </article>}
 
-      <article className="essay-panel essay-editor-card">
+      {activeTab === 'write' && <article className="essay-panel essay-editor-card">
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">Writing Editor</span>
@@ -564,12 +600,12 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
           <button className="dashboard-link-btn" type="button" onClick={saveDraft}><Save size={15} /> Save Draft</button>
           <button className="dash-cancel-btn" type="button" onClick={() => exportEssay()}><Download size={15} /> Export</button>
         </div>
-      </article>
+      </article>}
 
-      <article className="essay-panel essay-feedback-card">
+      {activeTab === 'feedback' && <article className="essay-panel essay-feedback-card">
         <div className="dashboard-card-head">
           <div>
-            <span className="metric-label">AI Feedback</span>
+            <span className="metric-label">Writing Feedback</span>
             <h2>{draft.scores ? `Overall ${draft.scores.overall}/100` : 'Submit essay for feedback'}</h2>
           </div>
           <CheckCircle2 size={24} />
@@ -594,9 +630,9 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
         ) : (
           <div className="essay-empty-state"><FileText size={28} /><p>Write your essay and click Get Feedback to see grammar, clarity, organization, vocabulary, flow, argument strength, and conclusion notes.</p></div>
         )}
-      </article>
+      </article>}
 
-      <article className="essay-panel essay-history-card">
+      {activeTab === 'history' && <article className="essay-panel essay-history-card">
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">Essay History</span>
@@ -623,9 +659,14 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
             ))}
           </div>
         ) : <div className="essay-empty-state"><Edit3 size={28} /><p>No essays yet. Generate a prompt and start your first practice session.</p></div>}
-      </article>
+      </article>}
 
-      <article className="essay-panel essay-progress-card">
+      {activeTab === 'progress' && <><div className="essay-dashboard-grid">
+        <div className="essay-stat-card"><span>Total essays</span><strong>{stats.total}</strong><p>{saving ? 'Saving...' : status || 'Ready to write'}</p></div>
+        <div className="essay-stat-card"><span>Average score</span><strong>{stats.averageScore || '-'}</strong><p>Based on submitted essays</p></div>
+        <div className="essay-stat-card"><span>Favorite category</span><strong>{stats.favoriteCategory}</strong><p>Most practiced topic area</p></div>
+        <div className="essay-stat-card"><span>Average words</span><strong>{stats.averageWords}</strong><p>Writing length trend</p></div>
+      </div><article className="essay-panel essay-progress-card">
         <div className="dashboard-card-head">
           <div>
             <span className="metric-label">Progress Dashboard</span>
@@ -647,7 +688,8 @@ function EssayPractice({ currentUser, refreshToken = 0 }) {
           <span>Vocabulary avg <strong>{Math.round(essays.reduce((sum, essay) => sum + (essay.scores?.vocabulary || 0), 0) / Math.max(1, essays.filter(essay => essay.scores).length)) || 0}</strong></span>
           <span>Avg words <strong>{stats.averageWords}</strong></span>
         </div>
-      </article>
+      </article></>}
+      </div>
     </section>
   );
 }
