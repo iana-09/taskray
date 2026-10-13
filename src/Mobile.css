@@ -1,0 +1,330 @@
+/* Phone-first refinements layered after the legacy responsive rules. */
+@media (max-width: 760px) {
+  .dash-root,
+  .dash-main,
+  .dash-main.view-productivity {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .dash-main,
+  .dash-main.view-productivity {
+    padding: 12px 14px calc(28px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .dash-header,
+  .dash-main.view-productivity .dash-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      "title"
+      "actions"
+      "search"
+      "quick"
+      "add" !important;
+    gap: 10px !important;
+    margin: 0 0 14px !important;
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .dash-header-copy,
+  .dash-main.view-productivity .dash-header-copy {
+    grid-area: title !important;
+    padding: 0 !important;
+  }
+
+  .dash-title,
+  .dash-main.view-productivity .dash-title {
+    font-size: clamp(1.75rem, 8vw, 2.4rem) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.035em !important;
+    overflow-wrap: anywhere;
+  }
+
+  .dash-subtitle {
+    font-size: 0.84rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .dash-header-meta {
+    gap: 6px !important;
+  }
+
+  .dash-main.view-productivity .dash-header-scene {
+    opacity: 0.22 !important;
+    background-position: center right !important;
+  }
+
+  .dash-header-actions,
+  .dash-main.view-productivity .dash-header-actions {
+    grid-area: actions !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+  }
+
+  .dash-root .header-tutorial-btn {
+    display: none !important;
+  }
+
+  .dash-root .header-user-chip {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    padding: 4px !important;
+    justify-content: center !important;
+  }
+
+  .dash-root .header-user-chip > span:last-child {
+    display: none !important;
+  }
+
+  .dash-root .header-icon-btn,
+  .dash-root .mobile-menu-toggle {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    flex: 0 0 44px !important;
+  }
+
+  .workspace-search,
+  .dash-main.view-productivity .workspace-search {
+    grid-area: search !important;
+    margin: 0 !important;
+  }
+
+  .dash-main.view-productivity .hero-quick-actions {
+    position: static !important;
+    grid-area: quick !important;
+    width: calc(100% + 2px) !important;
+    max-width: none !important;
+    min-height: 42px !important;
+    margin: 0 -1px !important;
+    padding: 2px 0 4px !important;
+    gap: 7px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dash-main.view-productivity .hero-quick-actions-label,
+  .dash-main.view-productivity .hero-quick-actions .quick-actions-arrow {
+    display: none !important;
+  }
+
+  .dash-main.view-productivity .hero-quick-actions > button:not(.quick-actions-arrow) {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding: 0 11px !important;
+  }
+
+  .dash-add-btn {
+    grid-area: add !important;
+    min-height: 44px !important;
+    width: 100% !important;
+  }
+
+  .tab-quick-actions,
+  .dash-main.view-productivity .tab-quick-actions {
+    position: static !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid var(--theme-control-border, rgba(125, 211, 252, 0.18)) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  .dash-root button,
+  .dash-root select,
+  .dash-root input,
+  .dash-root textarea {
+    scroll-margin-block: 16px;
+  }
+
+  .dash-root button:not(.modal-close-btn):not(.close-btn) {
+    min-height: 40px;
+  }
+
+  .dash-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .dash-stat-card {
+    min-width: 0 !important;
+    padding: 10px 7px !important;
+    text-align: center;
+  }
+
+  .dash-stat-value {
+    font-size: 1.3rem !important;
+  }
+
+  .dash-stat-label {
+    font-size: 0.65rem !important;
+    line-height: 1.2;
+  }
+
+  .task-status-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .task-status-tab {
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 7px 9px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .dash-task-card {
+    padding: 15px !important;
+  }
+
+  .dash-task-actions {
+    flex-direction: row !important;
+  }
+
+  .dash-task-actions > * {
+    flex: 1 1 120px !important;
+  }
+
+  .dashboard-metrics-grid,
+  .dashboard-brief-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .calendar-overview {
+    overflow: visible !important;
+  }
+
+  .calendar-weekdays,
+  .calendar-month-grid {
+    min-width: 0 !important;
+    gap: 4px !important;
+  }
+
+  .calendar-weekdays span {
+    font-size: 0.62rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .calendar-month-cell {
+    min-width: 0 !important;
+    min-height: 66px !important;
+    padding: 4px !important;
+    border-radius: 9px !important;
+  }
+
+  .calendar-month-cell > strong {
+    min-width: 22px !important;
+    height: 22px !important;
+    font-size: 0.72rem !important;
+  }
+
+  .calendar-cell-events {
+    flex-flow: row wrap !important;
+    justify-content: center;
+    gap: 3px !important;
+    margin-top: 5px !important;
+  }
+
+  .calendar-cell-events button {
+    flex: 0 0 7px !important;
+    width: 7px !important;
+    min-width: 7px !important;
+    height: 7px !important;
+    min-height: 7px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    font-size: 0 !important;
+  }
+
+  .calendar-cell-events em {
+    display: none !important;
+  }
+
+  .calendar-preview {
+    max-height: none !important;
+  }
+
+  .essay-writing-area {
+    min-height: 48vh !important;
+    line-height: 1.65 !important;
+  }
+
+  .modal-overlay,
+  .calendar-detail-overlay,
+  .gwa-image-review-overlay {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .modal-box,
+  .calendar-detail-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .dash-main,
+  .dash-main.view-productivity {
+    padding-inline: 10px !important;
+  }
+
+  .dash-header,
+  .dash-main.view-productivity .dash-header {
+    padding: 13px !important;
+    border-radius: 17px !important;
+  }
+
+  .dash-title,
+  .dash-main.view-productivity .dash-title {
+    font-size: clamp(1.65rem, 8vw, 2rem) !important;
+  }
+
+  .dashboard-metrics-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dash-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .calendar-month-cell {
+    min-height: 58px !important;
+    padding: 3px !important;
+  }
+
+  .calendar-month-cell > strong {
+    min-width: 20px !important;
+    height: 20px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .calendar-weekdays span {
+    font-size: 0.56rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-root *,
+  .dash-root *::before,
+  .dash-root *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
